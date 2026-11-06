@@ -2,6 +2,7 @@
 #include "src/atm/ATMlib.h"
 #include "src/atm/ATMlibimpl.h"
 #include "src/Songs.h"
+#include "PcmOutput.h"
 #if defined(__riscv) && !defined(CHSIM)
 #include <Arduino.h>
 #include <chgame/RamFunc.h>
@@ -13,6 +14,7 @@
 
 namespace {
 ATMsynth tracker;
+chgame_pcm::Output output;
 volatile bool ready = false;
 volatile unsigned gain = 3, muted = 0;
 uint16_t tickFraction = 0;
@@ -43,6 +45,7 @@ void play(unsigned track) {
     __disable_irq();
 #endif
     tracker.play(SONGS[track].data);
+    output.silence();
     memset(osc, 0, sizeof osc);
     osc[3].freq = 1;
     tickFraction = 0;
@@ -92,7 +95,7 @@ void millisecond() {
     }
 }
 RAMFUNC(chipSample) uint8_t sample() {
-    if (!ready) return 128;
+    if (!ready) return output.silence();
     const Mix &m = controls[front];
     int mix = 0;
     for (unsigned i = 0; i < 3; ++i) {
@@ -110,12 +113,13 @@ RAMFUNC(chipSample) uint8_t sample() {
     noise ^= ((noise >> 15) ^ (noise >> 14)) & 1;
     osc[3].freq = noise;
     mix += noise & 0x8000 ? -int(m.vol[3]) : int(m.vol[3]);
-    mix = mix * int(gain) / 4;
     if (++scopeDivider == 8) {
         scopeDivider = 0;
-        scope[scopeIndex++ & 127] = int8_t(mix);
+        scope[scopeIndex++ & 127] = int8_t(mix * int(gain) / 4);
     }
-    return uint8_t(128 + mix); // Authored voice levels sum to less than 128.
+    // Silence has no filter tail; keep the raw-score oscilloscope unchanged.
+    if (!(m.vol[0] | m.vol[1] | m.vol[2] | m.vol[3])) return output.silence();
+    return output.write(mix, gain);
 }
 Voice voice(unsigned ch) {
     if (ch >= 4) return {};

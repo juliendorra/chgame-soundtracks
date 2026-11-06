@@ -127,3 +127,10 @@ Additional MIDI references: VGMusic sequences credited to DurfarC, Jorge D.
 Fuentes, Jay Reichard, Heat Man, João "Johnnyz" Buaes, and an uncredited Wily
 sequencer. Composer credits and source links are in `Chiptune/tools/melodies.json`.
 See [NOTICE](NOTICE) and [LICENSE](LICENSE).
+
+
+## Audio update 1.1.1
+
+DC removal, increased output gain and bounded peak compression improve the four-voice music signal. All nine scores, original player controls and the default volume remain. The oscilloscope shows the unprocessed score mix. The new output helper is included locally, so builds use the existing pinned upstream SDK.
+
+[Audio validation notes](Chiptune/docs/audio-update.md).
